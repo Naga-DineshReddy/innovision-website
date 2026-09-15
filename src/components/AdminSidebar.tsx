@@ -16,7 +16,7 @@ const sidebarLinks = [
   { name: 'Gallery', path: '/admin/gallery', icon: Image },
   { name: 'Team', path: '/admin/team', icon: Users },
   { name: 'Messages', path: '/admin/messages', icon: MessageSquare },
-  { name: 'Settings', path: '/admin/settings', icon: Settings },
+  { name: 'Site Settings', path: '/admin/settings', icon: Settings },
 ];
 
 interface AdminSidebarProps {

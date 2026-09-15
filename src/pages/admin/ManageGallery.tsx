@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { Input, Textarea } from '../../components/ui/Input';
 import Skeleton from '../../components/ui/Skeleton';
+import ImageUpload from '../../components/ui/ImageUpload';
 import type { Gallery } from '../../types';
 import * as galleryService from '../../services/gallery';
 
@@ -109,7 +110,20 @@ export default function ManageGallery() {
             <div key={gallery.id} className="glass-card p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-4">
-                  <img src={gallery.coverImage} alt={gallery.eventName} className="w-20 h-14 rounded-xl object-cover shrink-0" />
+                  {gallery.coverImage?.trim() ? (
+                    <img
+                      src={gallery.coverImage.trim()}
+                      alt={gallery.eventName}
+                      className="w-20 h-14 rounded-xl object-cover shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-20 h-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-bold font-heading text-[var(--text-primary)]">{gallery.eventName}</h3>
                     <p className="text-xs text-[var(--text-muted)]">
@@ -129,7 +143,20 @@ export default function ManageGallery() {
                 <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                   {gallery.images.map(img => (
                     <div key={img.id} className="relative group">
-                      <img src={img.url} alt={img.caption || ''} className="w-full aspect-square rounded-lg object-cover" />
+                      {img.url?.trim() ? (
+                        <img
+                          src={img.url.trim()}
+                          alt={img.caption || ''}
+                          className="w-full aspect-square rounded-lg object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full aspect-square rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                          <ImageIcon className="w-5 h-5" />
+                        </div>
+                      )}
                       <button
                         onClick={() => removeImage(img.id)}
                         className="absolute top-1 right-1 p-1 rounded-md bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity"
@@ -151,7 +178,12 @@ export default function ManageGallery() {
         <div className="space-y-5">
           <Input label="Event Name" value={newGallery.eventName} onChange={e => setNewGallery({ ...newGallery, eventName: e.target.value })} placeholder="Event name" />
           <Input label="Event Date" type="date" value={newGallery.eventDate} onChange={e => setNewGallery({ ...newGallery, eventDate: e.target.value })} />
-          <Input label="Cover Image URL" value={newGallery.coverImage} onChange={e => setNewGallery({ ...newGallery, coverImage: e.target.value })} placeholder="https://..." />
+          <ImageUpload
+            label="Cover Image"
+            value={newGallery.coverImage}
+            onChange={url => setNewGallery({ ...newGallery, coverImage: url })}
+            bucket="gallery-images"
+          />
           <Textarea label="Description" value={newGallery.description} onChange={e => setNewGallery({ ...newGallery, description: e.target.value })} placeholder="Brief description" />
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setShowAddGallery(false)} fullWidth>Cancel</Button>
@@ -163,7 +195,12 @@ export default function ManageGallery() {
       {/* Add Image Modal */}
       <Modal isOpen={!!showAddImage} onClose={() => setShowAddImage(null)} title="Add Photo" size="sm">
         <div className="space-y-5">
-          <Input label="Image URL" value={newImage.url} onChange={e => setNewImage({ ...newImage, url: e.target.value })} placeholder="https://..." />
+          <ImageUpload
+            label="Photo"
+            value={newImage.url}
+            onChange={url => setNewImage({ ...newImage, url })}
+            bucket="gallery-images"
+          />
           <Input label="Caption (optional)" value={newImage.caption} onChange={e => setNewImage({ ...newImage, caption: e.target.value })} placeholder="Photo caption" />
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setShowAddImage(null)} fullWidth>Cancel</Button>

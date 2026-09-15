@@ -39,10 +39,13 @@ export default function EventCard({ event, index }: EventCardProps) {
         {/* Image */}
         <div className="relative aspect-video overflow-hidden shrink-0 bg-[var(--bg-secondary)]">
           <img
-            src={event.bannerImage}
+            src={event.bannerImage?.trim() || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800'}
             alt={event.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800';
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 

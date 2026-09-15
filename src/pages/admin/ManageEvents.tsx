@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Loader2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { Input, Textarea, Select } from '../../components/ui/Input';
 import Badge from '../../components/ui/Badge';
 import Skeleton from '../../components/ui/Skeleton';
+import ImageUpload from '../../components/ui/ImageUpload';
 import type { Event, EventCategory } from '../../types';
 import * as eventService from '../../services/events';
 
@@ -92,8 +93,13 @@ export default function ManageEvents() {
       setEditingEvent(null);
       await loadEvents();
     } catch (err) {
-      toast.error('Failed to save event');
-      console.error(err);
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      if (msg.includes('row-level security') || msg.includes('42501')) {
+        toast.error('Permission denied: Your account is not registered as an admin in the database. Run the SQL fix in Supabase.');
+      } else {
+        toast.error(`Failed to save event: ${msg}`);
+      }
+      console.error('[ManageEvents] Save error:', err);
     } finally {
       setSaving(false);
     }
@@ -155,7 +161,20 @@ export default function ManageEvents() {
                   <tr key={event.id} className="border-b border-[var(--glass-border)] hover:bg-[var(--bg-card)] transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <img src={event.bannerImage} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                        {event.bannerImage?.trim() ? (
+                          <img
+                            src={event.bannerImage.trim()}
+                            alt=""
+                            className="w-10 h-10 rounded-lg object-cover shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary">
+                            <Calendar className="w-5 h-5" />
+                          </div>
+                        )}
                         <div>
                           <p className="text-sm font-medium text-[var(--text-primary)]">{event.name}</p>
                           <p className="text-xs text-[var(--text-muted)] truncate max-w-[200px]">{event.venue}</p>
@@ -215,7 +234,14 @@ export default function ManageEvents() {
               <Input label="Min Team Size" type="number" value={String(editingEvent.minTeamSize || 1)} onChange={e => setEditingEvent({ ...editingEvent, minTeamSize: Number(e.target.value) })} />
               <Input label="Max Team Size" type="number" value={String(editingEvent.maxTeamSize || 4)} onChange={e => setEditingEvent({ ...editingEvent, maxTeamSize: Number(e.target.value) })} />
               <Input label="Registration Deadline" type="date" value={editingEvent.registrationDeadline || ''} onChange={e => setEditingEvent({ ...editingEvent, registrationDeadline: e.target.value })} />
-              <Input label="Banner Image URL" value={editingEvent.bannerImage || ''} onChange={e => setEditingEvent({ ...editingEvent, bannerImage: e.target.value })} placeholder="https://..." />
+              <div className="col-span-1 md:col-span-2">
+                <ImageUpload
+                  label="Banner Image"
+                  value={editingEvent.bannerImage || ''}
+                  onChange={(url) => setEditingEvent({ ...editingEvent, bannerImage: url })}
+                  bucket="event-banners"
+                />
+              </div>
             </div>
             <Input label="Short Description" value={editingEvent.shortDescription || ''} onChange={e => setEditingEvent({ ...editingEvent, shortDescription: e.target.value })} placeholder="Brief event description" />
             <Textarea label="Full Description" value={editingEvent.description || ''} onChange={e => setEditingEvent({ ...editingEvent, description: e.target.value })} placeholder="Detailed event description..." />

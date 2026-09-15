@@ -81,7 +81,7 @@ export default function Lightbox({ images, currentIndex, onClose, onPrev, onNext
           onClick={(e) => e.stopPropagation()}
         >
           <img
-            src={image.url}
+            src={image.url?.trim() || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200'}
             alt={image.caption || 'Gallery image'}
             className="max-w-full max-h-[85vh] object-contain rounded-lg"
           />

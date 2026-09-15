@@ -122,17 +122,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        // If Supabase authentication fails due to network or unconfigured tables, provide fallback option
         console.warn('Supabase auth failed:', error.message);
         return { error: error.message };
+      }
+
+      // Wait for admin check to complete before returning
+      if (data.user) {
+        await checkAdmin(data.user.id);
       }
       return {};
     } catch (err) {
       return { error: 'Authentication service unavailable' };
     }
-  }, []);
+  }, [checkAdmin]);
 
   const signOut = useCallback(async () => {
     localStorage.removeItem('innovision_demo_auth');

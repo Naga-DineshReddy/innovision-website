@@ -42,9 +42,12 @@ export default function BannerCarousel({ banners }: BannerCarouselProps) {
           className="absolute inset-0"
         >
           <img
-            src={banner.image}
+            src={banner.image?.trim() || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200'}
             alt={banner.title}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200';
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 md:p-10 pb-10 sm:pb-12">

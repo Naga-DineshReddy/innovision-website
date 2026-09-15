@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Input, Textarea } from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import * as contactService from '../services/contact';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 
 const socialLinks = [
   { icon: Globe, label: 'Instagram', href: '#', color: 'hover:text-pink-400' },
@@ -14,6 +15,7 @@ const socialLinks = [
 ];
 
 export default function Contact() {
+  const settings = useSiteSettings();
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -89,7 +91,12 @@ export default function Contact() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Email</p>
-                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">innovision@college.edu</p>
+                        <a
+                          href={`mailto:${settings.contactEmail}`}
+                          className="text-sm font-medium text-[var(--text-primary)] hover:text-primary transition-colors truncate block"
+                        >
+                          {settings.contactEmail}
+                        </a>
                       </div>
                     </div>
 
@@ -99,7 +106,12 @@ export default function Contact() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Phone</p>
-                        <p className="text-sm font-medium text-[var(--text-primary)]">+91 98765 43210</p>
+                        <a
+                          href={`tel:${settings.contactPhone.replace(/\s+/g, '')}`}
+                          className="text-sm font-medium text-[var(--text-primary)] hover:text-primary transition-colors block"
+                        >
+                          {settings.contactPhone}
+                        </a>
                       </div>
                     </div>
 
@@ -109,9 +121,8 @@ export default function Contact() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Address</p>
-                        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                          Department of AI & Data Science,<br />
-                          Main Campus, Block A, College of Engineering
+                        <p className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+                          {settings.contactAddress}
                         </p>
                       </div>
                     </div>

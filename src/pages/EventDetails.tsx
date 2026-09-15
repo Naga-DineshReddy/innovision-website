@@ -63,7 +63,14 @@ export default function EventDetails() {
     <>
       {/* Banner */}
       <section className="relative h-[40vh] md:h-[50vh] overflow-hidden">
-        <img src={event.bannerImage} alt={event.name} className="w-full h-full object-cover" />
+        <img
+          src={event.bannerImage?.trim() || 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800'}
+          alt={event.name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800';
+          }}
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)] via-black/50 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
           <div className="section-container">

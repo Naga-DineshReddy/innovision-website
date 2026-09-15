@@ -1,10 +1,38 @@
 import { motion } from 'framer-motion';
 import { Play } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSiteSettings } from '../hooks/useSiteSettings';
+import { getVideoBlob } from '../services/videoStorage';
 
 export default function VideoSection() {
+  const settings = useSiteSettings();
   const [playing, setPlaying] = useState(false);
+  const [customVideoSrc, setCustomVideoSrc] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Load custom video if set to 'uploaded'
+  useEffect(() => {
+    let objectUrl: string | null = null;
+
+    if (settings.videoEnabled && settings.videoSourceType === 'uploaded') {
+      getVideoBlob().then((record) => {
+        if (record?.blob) {
+          objectUrl = URL.createObjectURL(record.blob);
+          setCustomVideoSrc(objectUrl);
+        } else {
+          setCustomVideoSrc(null);
+        }
+      });
+    } else {
+      setCustomVideoSrc(null);
+    }
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [settings.videoEnabled, settings.videoSourceType, settings.updatedAt]);
 
   const handlePlay = () => {
     setPlaying(true);
@@ -12,6 +40,26 @@ export default function VideoSection() {
       videoRef.current.play();
     }
   };
+
+  // If video is disabled in admin settings, do not render this section
+  if (!settings.videoEnabled) {
+    return null;
+  }
+
+  // Determine active video source URL
+  // Determine active video source URL
+  const activeVideoUrl =
+    (settings.videoSourceType === 'uploaded' && customVideoSrc?.trim()
+      ? customVideoSrc.trim()
+      : settings.videoSourceType === 'url' && settings.videoUrl?.trim()
+      ? settings.videoUrl.trim()
+      : settings.videoUrl?.trim() || '/videos/innovision-promo.mp4?v=2');
+
+  const posterUrl = settings.videoPoster?.trim() || '/videos/innovision-promo-thumb.png?v=2';
+  const sectionTitle = settings.videoTitle || 'Experience InnoVision';
+  const sectionSubtitle =
+    settings.videoSubtitle ||
+    'Watch our highlight reel and discover what makes InnoVision the most exciting tech community on campus.';
 
   return (
     <section className="section-py relative border-t border-[var(--glass-border)] overflow-hidden">
@@ -27,10 +75,10 @@ export default function VideoSection() {
           className="text-center mb-10 sm:mb-12 w-full max-w-3xl mx-auto flex flex-col items-center"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold font-heading gradient-text mb-3 sm:mb-4 tracking-tight text-center">
-            Experience InnoVision
+            {sectionTitle}
           </h2>
           <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed text-center">
-            Watch our highlight reel and discover what makes InnoVision the most exciting tech community on campus.
+            {sectionSubtitle}
           </p>
         </motion.div>
 
@@ -43,38 +91,45 @@ export default function VideoSection() {
           <div className="relative rounded-3xl overflow-hidden glass-card p-2 sm:p-3.5 w-full shadow-2xl border border-[var(--glass-border)]">
             <div className="rounded-2xl overflow-hidden relative w-full bg-black/95 aspect-video flex items-center justify-center shadow-inner">
               {/* Ambient blurred backdrop */}
-              <img
-                src="/videos/innovision-promo-thumb.png"
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-110 pointer-events-none select-none"
-              />
+              {posterUrl ? (
+                <img
+                  src={posterUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-110 pointer-events-none select-none"
+                />
+              ) : null}
 
               <video
+                key={activeVideoUrl}
                 ref={videoRef}
-                poster="/videos/innovision-promo-thumb.png?v=2"
+                poster={posterUrl || undefined}
                 controls={playing}
                 playsInline
                 preload="metadata"
                 className="relative z-10 w-full h-full object-contain rounded-xl"
                 onEnded={() => setPlaying(false)}
               >
-                <source src="/videos/innovision-promo.mp4?v=2" type="video/mp4" />
+                {activeVideoUrl ? (
+                  <source src={activeVideoUrl} type="video/mp4" />
+                ) : null}
                 Your browser does not support HTML5 video playback.
               </video>
 
               {!playing && (
-                <div 
+                <div
                   onClick={handlePlay}
                   className="absolute inset-0 z-20 cursor-pointer group flex items-center justify-center overflow-hidden rounded-2xl"
                 >
-                  <img
-                    src="/videos/innovision-promo-thumb.png?v=2"
-                    alt="Video thumbnail"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                  {posterUrl ? (
+                    <img
+                      src={posterUrl}
+                      alt="Video thumbnail"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20 group-hover:from-black/60 group-hover:via-black/20 transition-colors" />
-                  
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

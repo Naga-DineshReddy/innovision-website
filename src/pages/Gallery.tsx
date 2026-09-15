@@ -63,9 +63,12 @@ export default function GalleryPage() {
                   <Link to={`/gallery/${gallery.id}`} className="block glass-card overflow-hidden group">
                     <div className="relative aspect-video overflow-hidden">
                       <img
-                        src={gallery.coverImage}
+                        src={gallery.coverImage?.trim() || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'}
                         alt={gallery.eventName}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800';
+                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       <div className="absolute bottom-4 right-4">

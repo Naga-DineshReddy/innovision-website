@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Globe, Link2, Share2, MessageCircle, Mail, MapPin, ArrowUpRight } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 import mascotDark from '../assets/innovision-mascot-dark.png';
 import mascotLight from '../assets/innovision-mascot-light.png';
 
@@ -22,6 +23,7 @@ const socialLinks = [
 
 export default function Footer() {
   const { isDark } = useTheme();
+  const settings = useSiteSettings();
 
   return (
     <footer className="relative border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]">
@@ -100,8 +102,8 @@ export default function Footer() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">Email</p>
-                  <a href="mailto:innovision@college.edu" className="text-[var(--text-primary)] hover:text-primary transition-colors font-medium">
-                    innovision@college.edu
+                  <a href={`mailto:${settings.contactEmail}`} className="text-[var(--text-primary)] hover:text-primary transition-colors font-medium truncate block">
+                    {settings.contactEmail}
                   </a>
                 </div>
               </li>
@@ -111,8 +113,8 @@ export default function Footer() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">Location</p>
-                  <p className="text-[var(--text-secondary)] leading-relaxed">
-                    Department of AI & Data Science, Main Campus, Block A
+                  <p className="text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+                    {settings.contactAddress}
                   </p>
                 </div>
               </li>

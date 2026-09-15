@@ -25,9 +25,12 @@ export default function GalleryGrid({ images }: GalleryGridProps) {
           >
             <div className="relative overflow-hidden rounded-xl">
               <img
-                src={image.url}
+                src={image.url?.trim() || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800'}
                 alt={image.caption || 'Gallery image'}
                 className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800';
+                }}
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-end">
                 {image.caption && (

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Loader2, Megaphone } from 'lucide-react';
 import { toast } from 'sonner';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import Badge from '../../components/ui/Badge';
 import Skeleton from '../../components/ui/Skeleton';
+import ImageUpload from '../../components/ui/ImageUpload';
 import type { Banner } from '../../types';
 import * as bannerService from '../../services/banners';
 
@@ -104,7 +105,20 @@ export default function ManageBanners() {
           {sorted.map(banner => (
             <div key={banner.id} className="glass-card p-4">
               <div className="flex items-center gap-4">
-                <img src={banner.image} alt={banner.title} className="w-32 h-20 rounded-xl object-cover shrink-0" />
+                {banner.image?.trim() ? (
+                  <img
+                    src={banner.image.trim()}
+                    alt={banner.title}
+                    className="w-32 h-20 rounded-xl object-cover shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-32 h-20 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary">
+                    <Megaphone className="w-6 h-6" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-semibold text-[var(--text-primary)] truncate">{banner.title}</h3>
@@ -140,7 +154,12 @@ export default function ManageBanners() {
           <div className="space-y-5">
             <Input label="Title" value={editingBanner.title || ''} onChange={e => setEditingBanner({ ...editingBanner, title: e.target.value })} placeholder="Banner title" />
             <Input label="Subtitle" value={editingBanner.subtitle || ''} onChange={e => setEditingBanner({ ...editingBanner, subtitle: e.target.value })} placeholder="Banner subtitle" />
-            <Input label="Image URL" value={editingBanner.image || ''} onChange={e => setEditingBanner({ ...editingBanner, image: e.target.value })} placeholder="https://..." />
+            <ImageUpload
+              label="Banner Image"
+              value={editingBanner.image || ''}
+              onChange={url => setEditingBanner({ ...editingBanner, image: url })}
+              bucket="association-assets"
+            />
             <div className="grid grid-cols-2 gap-5">
               <Input label="Button Text" value={editingBanner.buttonText || ''} onChange={e => setEditingBanner({ ...editingBanner, buttonText: e.target.value })} placeholder="Learn More" />
               <Input label="Button Link" value={editingBanner.buttonLink || ''} onChange={e => setEditingBanner({ ...editingBanner, buttonLink: e.target.value })} placeholder="/events" />

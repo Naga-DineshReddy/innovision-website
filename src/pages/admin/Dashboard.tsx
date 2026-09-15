@@ -92,7 +92,20 @@ export default function Dashboard() {
             <div className="space-y-3">
               {upcomingEvents.map(event => (
                 <div key={event.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-[var(--bg-card)] transition-colors">
-                  <img src={event.bannerImage} alt={event.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                  {event.bannerImage?.trim() ? (
+                    <img
+                      src={event.bannerImage.trim()}
+                      alt={event.name}
+                      className="w-12 h-12 rounded-lg object-cover shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary">
+                      <Calendar className="w-6 h-6" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[var(--text-primary)] truncate">{event.name}</p>
                     <p className="text-xs text-[var(--text-muted)]">

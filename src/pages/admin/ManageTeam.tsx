@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { Input, Select } from '../../components/ui/Input';
 import Skeleton from '../../components/ui/Skeleton';
+import ImageUpload from '../../components/ui/ImageUpload';
 import type { TeamMember, TeamCategory } from '../../types';
 import * as teamService from '../../services/team';
 
@@ -124,7 +125,20 @@ export default function ManageTeam() {
                         <tr key={m.id} className="border-b border-[var(--glass-border)] hover:bg-[var(--bg-card)] transition-colors">
                           <td className="px-6 py-3">
                             <div className="flex items-center gap-3">
-                              <img src={m.image} alt={m.name} className="w-9 h-9 rounded-full object-cover" />
+                              {m.image?.trim() ? (
+                                <img
+                                  src={m.image.trim()}
+                                  alt={m.name}
+                                  className="w-9 h-9 rounded-full object-cover shrink-0"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary">
+                                  <User className="w-4 h-4" />
+                                </div>
+                              )}
                               <span className="text-sm font-medium text-[var(--text-primary)]">{m.name}</span>
                             </div>
                           </td>
@@ -157,7 +171,14 @@ export default function ManageTeam() {
               <Select label="Category" value={editing.category || 'Technical Team'} onChange={e => setEditing({ ...editing, category: (e.target as HTMLSelectElement).value as TeamCategory })} options={categoryOptions} />
               <Input label="Department" value={editing.department || ''} onChange={e => setEditing({ ...editing, department: e.target.value })} placeholder="e.g., AI & Data Science" />
               <Select label="Year" value={editing.year || ''} onChange={e => setEditing({ ...editing, year: (e.target as HTMLSelectElement).value })} options={yearOptions} />
-              <Input label="Image URL" value={editing.image || ''} onChange={e => setEditing({ ...editing, image: e.target.value })} placeholder="https://..." />
+              <div className="col-span-1 md:col-span-2">
+                <ImageUpload
+                  label="Profile Photo"
+                  value={editing.image || ''}
+                  onChange={url => setEditing({ ...editing, image: url })}
+                  bucket="team-images"
+                />
+              </div>
               <Input label="Email" value={editing.email || ''} onChange={e => setEditing({ ...editing, email: e.target.value })} placeholder="email@college.edu" />
               <Input label="LinkedIn" value={editing.linkedin || ''} onChange={e => setEditing({ ...editing, linkedin: e.target.value })} placeholder="https://linkedin.com/in/..." />
               <Input label="Instagram" value={editing.instagram || ''} onChange={e => setEditing({ ...editing, instagram: e.target.value })} placeholder="https://instagram.com/..." />

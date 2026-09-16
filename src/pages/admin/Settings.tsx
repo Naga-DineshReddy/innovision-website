@@ -12,6 +12,7 @@ import { Input, Textarea } from '../../components/ui/Input';
 import ImageUpload from '../../components/ui/ImageUpload';
 import {
   getSiteSettings,
+  fetchSiteSettings,
   updateSiteSettings,
   type SiteSettings,
 } from '../../services/siteSettings';
@@ -54,6 +55,24 @@ export default function Settings() {
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const videoPlayerRef = useRef<HTMLVideoElement>(null);
+
+  // Load fresh site settings from backend on mount
+  useEffect(() => {
+    fetchSiteSettings().then((fresh) => {
+      setSettings(fresh);
+      setContactEmail(fresh.contactEmail);
+      setContactPhone(fresh.contactPhone);
+      setContactAddress(fresh.contactAddress);
+      setVideoTitle(fresh.videoTitle);
+      setVideoSubtitle(fresh.videoSubtitle);
+      setVideoUrl(fresh.videoUrl);
+      setVideoPoster(fresh.videoPoster);
+      setVideoEnabled(fresh.videoEnabled);
+      setVideoSourceType(fresh.videoSourceType);
+      if (fresh.uploadedVideoName) setUploadedVideoName(fresh.uploadedVideoName);
+      if (fresh.uploadedVideoSize) setUploadedVideoSize(fresh.uploadedVideoSize);
+    });
+  }, []);
 
   // Synchronize tab selection with URL
   const switchTab = (tab: 'video' | 'contact' | 'system') => {
@@ -98,7 +117,7 @@ export default function Settings() {
 
     // 200MB limit for browser indexedDB storage
     if (file.size > 250 * 1024 * 1024) {
-      toast.error('Video file is too large. Maximum supported size is 250MB.');
+      toast.error('Video size exceeds 250MB limit. Please choose a smaller file.');
       return;
     }
 
@@ -113,7 +132,7 @@ export default function Settings() {
       setVideoSourceType('uploaded');
 
       // Auto update site settings
-      const updated = updateSiteSettings({
+      const updated = await updateSiteSettings({
         videoSourceType: 'uploaded',
         hasCustomUploadedVideo: true,
         uploadedVideoName: file.name,
@@ -150,7 +169,7 @@ export default function Settings() {
       setVideoSourceType('default');
       setVideoEnabled(false);
 
-      const updated = updateSiteSettings({
+      const updated = await updateSiteSettings({
         videoEnabled: false,
         videoSourceType: 'default',
         hasCustomUploadedVideo: false,
@@ -185,7 +204,7 @@ export default function Settings() {
       setUploadedVideoSize(0);
       setPreviewVideoUrl('/videos/innovision-promo.mp4?v=2');
 
-      const updated = updateSiteSettings({
+      const updated = await updateSiteSettings({
         videoEnabled: true,
         videoSourceType: 'default',
         videoUrl: '/videos/innovision-promo.mp4?v=2',
@@ -209,10 +228,10 @@ export default function Settings() {
   };
 
   // Save Video Details (Title, Subtitle, Visibility, Poster)
-  const handleSaveVideoSettings = () => {
+  const handleSaveVideoSettings = async () => {
     setIsSaving(true);
     try {
-      const updated = updateSiteSettings({
+      const updated = await updateSiteSettings({
         videoEnabled,
         videoTitle,
         videoSubtitle,
@@ -224,14 +243,14 @@ export default function Settings() {
       toast.success('Homepage video settings saved successfully!');
     } catch (err) {
       console.error('Failed to save video settings:', err);
-      toast.error('Failed to save video settings.');
+      toast.error('Saved locally, but failed to sync to database.');
     } finally {
       setIsSaving(false);
     }
   };
 
   // Save Contact Info
-  const handleSaveContactSettings = () => {
+  const handleSaveContactSettings = async () => {
     if (!contactEmail.trim() || !/\S+@\S+\.\S+/.test(contactEmail)) {
       toast.error('Please enter a valid email address');
       return;
@@ -243,7 +262,7 @@ export default function Settings() {
 
     setIsSaving(true);
     try {
-      const updated = updateSiteSettings({
+      const updated = await updateSiteSettings({
         contactEmail: contactEmail.trim(),
         contactPhone: contactPhone.trim(),
         contactAddress: contactAddress.trim(),
@@ -252,7 +271,7 @@ export default function Settings() {
       toast.success('Contact information updated successfully! Changes are live on Contact page & Footer.');
     } catch (err) {
       console.error('Failed to save contact settings:', err);
-      toast.error('Failed to save contact settings.');
+      toast.error('Saved locally, but database sync failed. Please ensure the migration SQL is applied.');
     } finally {
       setIsSaving(false);
     }

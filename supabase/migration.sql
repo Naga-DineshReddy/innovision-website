@@ -157,6 +157,31 @@ CREATE TABLE public.admin_profiles (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- SITE SETTINGS
+CREATE TABLE public.site_settings (
+  id text PRIMARY KEY DEFAULT 'default',
+  contact_email text NOT NULL DEFAULT 'innovision@college.edu',
+  contact_phone text NOT NULL DEFAULT '+91 98765 43210',
+  contact_address text NOT NULL DEFAULT 'Department of AI & Data Science,
+Main Campus, Block A, College of Engineering',
+  video_enabled boolean NOT NULL DEFAULT true,
+  video_title text NOT NULL DEFAULT 'Experience InnoVision',
+  video_subtitle text NOT NULL DEFAULT 'Watch our highlight reel and discover what makes InnoVision the most exciting tech community on campus.',
+  video_source_type text NOT NULL DEFAULT 'default',
+  video_url text NOT NULL DEFAULT '/videos/innovision-promo.mp4?v=2',
+  video_poster text NOT NULL DEFAULT '/videos/innovision-promo-thumb.png?v=2',
+  has_custom_uploaded_video boolean NOT NULL DEFAULT false,
+  uploaded_video_name text,
+  uploaded_video_size bigint,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO public.site_settings (id)
+VALUES ('default')
+ON CONFLICT (id) DO NOTHING;
+
+
 -- ============================================================
 -- 3. AUTO-GENERATE registration_id
 -- ============================================================
@@ -210,6 +235,8 @@ CREATE TRIGGER tr_banners_updated_at BEFORE UPDATE ON public.banners
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 CREATE TRIGGER tr_registrations_updated_at BEFORE UPDATE ON public.registrations
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+CREATE TRIGGER tr_site_settings_updated_at BEFORE UPDATE ON public.site_settings
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 -- ============================================================
 -- 5. INDEXES
@@ -242,6 +269,7 @@ ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.registration_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 
 -- EVENTS: public read, admin write
 CREATE POLICY "events_public_read" ON public.events FOR SELECT USING (true);
@@ -293,6 +321,12 @@ CREATE POLICY "contact_admin_delete" ON public.contact_messages FOR DELETE USING
 -- ADMIN PROFILES: admin can read own profile
 CREATE POLICY "admin_profiles_read" ON public.admin_profiles FOR SELECT
   USING (auth.uid() = user_id);
+
+-- SITE SETTINGS: public read, admin insert/update/delete
+CREATE POLICY "site_settings_public_read" ON public.site_settings FOR SELECT USING (true);
+CREATE POLICY "site_settings_admin_insert" ON public.site_settings FOR INSERT WITH CHECK (public.is_admin() OR auth.role() = 'authenticated');
+CREATE POLICY "site_settings_admin_update" ON public.site_settings FOR UPDATE USING (public.is_admin() OR auth.role() = 'authenticated');
+CREATE POLICY "site_settings_admin_delete" ON public.site_settings FOR DELETE USING (public.is_admin() OR auth.role() = 'authenticated');
 
 -- ============================================================
 -- 7. RPC: Atomic Registration Creation
@@ -426,3 +460,4 @@ $$;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.registrations;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.events;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.banners;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.site_settings;

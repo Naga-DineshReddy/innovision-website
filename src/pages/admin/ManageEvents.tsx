@@ -27,10 +27,27 @@ const statusOptions = [
 ];
 
 const defaultEvent: Partial<Event> = {
-  name: '', shortDescription: '', description: '', date: '', time: '',
-  venue: '', category: 'hackathon', bannerImage: '', rules: [],
-  eligibility: '', maxTeamSize: 4, minTeamSize: 1,
-  registrationDeadline: '', registrationEnabled: true, status: 'upcoming',
+  name: '',
+  title: '',
+  shortDescription: '',
+  description: '',
+  date: '',
+  eventDate: '',
+  time: '',
+  startTime: '',
+  venue: '',
+  category: 'hackathon',
+  bannerImage: '',
+  bannerUrl: '',
+  rules: [],
+  eligibility: '',
+  maxTeamSize: 4,
+  teamSizeMax: 4,
+  minTeamSize: 1,
+  teamSizeMin: 1,
+  registrationDeadline: '',
+  registrationEnabled: true,
+  status: 'upcoming',
 };
 
 export default function ManageEvents() {
@@ -58,7 +75,7 @@ export default function ManageEvents() {
   useEffect(() => { loadEvents(); }, []);
 
   const filtered = events.filter(e =>
-    e.name.toLowerCase().includes(search.toLowerCase())
+    (e.name || e.title || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const openAdd = () => {
@@ -68,21 +85,77 @@ export default function ManageEvents() {
   };
 
   const openEdit = (event: Event) => {
-    setEditingEvent({ ...event });
-    setRulesText(event.rules.join('\n'));
+    const rawDate = event.date || event.eventDate || '';
+    const formattedDate = rawDate ? rawDate.split('T')[0] : '';
+    const rawDeadline = event.registrationDeadline || '';
+    const formattedDeadline = rawDeadline ? rawDeadline.split('T')[0] : '';
+    const name = event.name || event.title || '';
+    const banner = event.bannerImage || event.bannerUrl || '';
+    const time = event.time || event.startTime || '';
+    const minTeam = event.minTeamSize ?? event.teamSizeMin ?? 1;
+    const maxTeam = event.maxTeamSize ?? event.teamSizeMax ?? 4;
+
+    setEditingEvent({
+      ...event,
+      name,
+      title: name,
+      date: formattedDate,
+      eventDate: formattedDate,
+      time,
+      startTime: time,
+      bannerImage: banner,
+      bannerUrl: banner,
+      minTeamSize: minTeam,
+      teamSizeMin: minTeam,
+      maxTeamSize: maxTeam,
+      teamSizeMax: maxTeam,
+      registrationDeadline: formattedDeadline,
+    });
+    setRulesText((event.rules || []).join('\n'));
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!editingEvent?.name) return;
+    const name = editingEvent?.name || editingEvent?.title || '';
+    if (!name.trim()) {
+      toast.error('Event name is required');
+      return;
+    }
+    const rawDate = editingEvent?.date || editingEvent?.eventDate || '';
+    const cleanDate = rawDate ? rawDate.split('T')[0] : '';
+    if (!cleanDate) {
+      toast.error('Event date is required');
+      return;
+    }
+
     setSaving(true);
     try {
+      const banner = editingEvent?.bannerImage || editingEvent?.bannerUrl || '';
+      const time = editingEvent?.time || editingEvent?.startTime || '';
+      const minTeam = Number(editingEvent?.minTeamSize ?? editingEvent?.teamSizeMin ?? 1);
+      const maxTeam = Number(editingEvent?.maxTeamSize ?? editingEvent?.teamSizeMax ?? 4);
+      const rawDl = editingEvent?.registrationDeadline || '';
+      const cleanDeadline = rawDl ? rawDl.split('T')[0] : null;
+
       const eventData = {
         ...editingEvent,
+        name,
+        title: name,
+        date: cleanDate,
+        eventDate: cleanDate,
+        time,
+        startTime: time,
+        bannerImage: banner,
+        bannerUrl: banner,
+        minTeamSize: minTeam,
+        teamSizeMin: minTeam,
+        maxTeamSize: maxTeam,
+        teamSizeMax: maxTeam,
+        registrationDeadline: cleanDeadline,
         rules: rulesText.split('\n').filter(r => r.trim()),
       };
 
-      if (editingEvent.id && events.find(e => e.id === editingEvent.id)) {
+      if (editingEvent?.id && events.find(e => e.id === editingEvent.id)) {
         await eventService.updateEvent(editingEvent.id, eventData);
         toast.success('Event updated');
       } else {
@@ -185,7 +258,9 @@ export default function ManageEvents() {
                       <Badge>{event.category}</Badge>
                     </td>
                     <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">
-                      {new Date(event.date).toLocaleDateString('en-US', { dateStyle: 'medium' })}
+                      {event.date
+                        ? new Date(event.date + (event.date.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { dateStyle: 'medium' })
+                        : '-'}
                     </td>
                     <td className="px-6 py-4">
                       <Badge variant={event.status === 'upcoming' ? 'success' : event.status === 'ongoing' ? 'warning' : 'default'}>
@@ -225,20 +300,71 @@ export default function ManageEvents() {
         {editingEvent && (
           <div className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <Input label="Event Name" value={editingEvent.name || ''} onChange={e => setEditingEvent({ ...editingEvent, name: e.target.value })} placeholder="Event name" />
-              <Select label="Category" value={editingEvent.category || 'hackathon'} onChange={e => setEditingEvent({ ...editingEvent, category: (e.target as HTMLSelectElement).value as EventCategory })} options={categoryOptions} />
-              <Input label="Date" type="date" value={editingEvent.date || ''} onChange={e => setEditingEvent({ ...editingEvent, date: e.target.value })} />
-              <Input label="Time" value={editingEvent.time || ''} onChange={e => setEditingEvent({ ...editingEvent, time: e.target.value })} placeholder="e.g., 09:00 AM - 05:00 PM" />
-              <Input label="Venue" value={editingEvent.venue || ''} onChange={e => setEditingEvent({ ...editingEvent, venue: e.target.value })} placeholder="Event venue" />
-              <Select label="Status" value={editingEvent.status || 'upcoming'} onChange={e => setEditingEvent({ ...editingEvent, status: (e.target as HTMLSelectElement).value as 'upcoming' | 'ongoing' | 'completed' })} options={statusOptions} />
-              <Input label="Min Team Size" type="number" value={String(editingEvent.minTeamSize || 1)} onChange={e => setEditingEvent({ ...editingEvent, minTeamSize: Number(e.target.value) })} />
-              <Input label="Max Team Size" type="number" value={String(editingEvent.maxTeamSize || 4)} onChange={e => setEditingEvent({ ...editingEvent, maxTeamSize: Number(e.target.value) })} />
-              <Input label="Registration Deadline" type="date" value={editingEvent.registrationDeadline || ''} onChange={e => setEditingEvent({ ...editingEvent, registrationDeadline: e.target.value })} />
+              <Input
+                label="Event Name"
+                value={editingEvent.name || editingEvent.title || ''}
+                onChange={e => setEditingEvent({ ...editingEvent, name: e.target.value, title: e.target.value })}
+                placeholder="Event name"
+              />
+              <Select
+                label="Category"
+                value={editingEvent.category || 'hackathon'}
+                onChange={e => setEditingEvent({ ...editingEvent, category: (e.target as HTMLSelectElement).value as EventCategory })}
+                options={categoryOptions}
+              />
+              <Input
+                label="Date"
+                type="date"
+                value={editingEvent.date || editingEvent.eventDate || ''}
+                onChange={e => setEditingEvent({ ...editingEvent, date: e.target.value, eventDate: e.target.value })}
+              />
+              <Input
+                label="Time"
+                value={editingEvent.time || editingEvent.startTime || ''}
+                onChange={e => setEditingEvent({ ...editingEvent, time: e.target.value, startTime: e.target.value })}
+                placeholder="e.g., 09:00 AM - 05:00 PM"
+              />
+              <Input
+                label="Venue"
+                value={editingEvent.venue || ''}
+                onChange={e => setEditingEvent({ ...editingEvent, venue: e.target.value })}
+                placeholder="Event venue"
+              />
+              <Select
+                label="Status"
+                value={editingEvent.status || 'upcoming'}
+                onChange={e => setEditingEvent({ ...editingEvent, status: (e.target as HTMLSelectElement).value as 'upcoming' | 'ongoing' | 'completed' })}
+                options={statusOptions}
+              />
+              <Input
+                label="Min Team Size"
+                type="number"
+                value={String(editingEvent.minTeamSize ?? editingEvent.teamSizeMin ?? 1)}
+                onChange={e => {
+                  const val = Number(e.target.value);
+                  setEditingEvent({ ...editingEvent, minTeamSize: val, teamSizeMin: val });
+                }}
+              />
+              <Input
+                label="Max Team Size"
+                type="number"
+                value={String(editingEvent.maxTeamSize ?? editingEvent.teamSizeMax ?? 4)}
+                onChange={e => {
+                  const val = Number(e.target.value);
+                  setEditingEvent({ ...editingEvent, maxTeamSize: val, teamSizeMax: val });
+                }}
+              />
+              <Input
+                label="Registration Deadline"
+                type="date"
+                value={editingEvent.registrationDeadline ? editingEvent.registrationDeadline.split('T')[0] : ''}
+                onChange={e => setEditingEvent({ ...editingEvent, registrationDeadline: e.target.value })}
+              />
               <div className="col-span-1 md:col-span-2">
                 <ImageUpload
                   label="Banner Image"
-                  value={editingEvent.bannerImage || ''}
-                  onChange={(url) => setEditingEvent({ ...editingEvent, bannerImage: url })}
+                  value={editingEvent.bannerImage || editingEvent.bannerUrl || ''}
+                  onChange={(url) => setEditingEvent({ ...editingEvent, bannerImage: url, bannerUrl: url })}
                   bucket="event-banners"
                 />
               </div>

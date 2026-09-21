@@ -45,12 +45,37 @@ export default function ManageTeam() {
   useEffect(() => { loadTeam(); }, []);
 
   const openAdd = () => {
-    setEditing({ name: '', role: '', category: 'Technical Team', department: '', year: '', image: '', email: '', linkedin: '', instagram: '' });
+    setEditing({
+      name: '',
+      role: '',
+      category: 'Technical Team',
+      department: '',
+      year: '',
+      image: '',
+      profileImageUrl: '',
+      email: '',
+      phone: '',
+      linkedin: '',
+      linkedinUrl: '',
+      instagram: '',
+      instagramUrl: '',
+    });
     setShowModal(true);
   };
 
   const openEdit = (member: TeamMember) => {
-    setEditing({ ...member });
+    const photo = member.image || member.profileImageUrl || '';
+    const linkedin = member.linkedin || member.linkedinUrl || '';
+    const instagram = member.instagram || member.instagramUrl || '';
+    setEditing({
+      ...member,
+      image: photo,
+      profileImageUrl: photo,
+      linkedin,
+      linkedinUrl: linkedin,
+      instagram,
+      instagramUrl: instagram,
+    });
     setShowModal(true);
   };
 
@@ -58,11 +83,21 @@ export default function ManageTeam() {
     if (!editing?.name || !editing?.role) return;
     setSaving(true);
     try {
+      const payload: Partial<TeamMember> = {
+        ...editing,
+        profileImageUrl: editing.image || editing.profileImageUrl || '',
+        image: editing.image || editing.profileImageUrl || '',
+        linkedinUrl: editing.linkedin || editing.linkedinUrl || '',
+        linkedin: editing.linkedin || editing.linkedinUrl || '',
+        instagramUrl: editing.instagram || editing.instagramUrl || '',
+        instagram: editing.instagram || editing.instagramUrl || '',
+      };
+
       if (editing.id && teamMembers.find(t => t.id === editing.id)) {
-        await teamService.updateTeamMember(editing.id, editing);
+        await teamService.updateTeamMember(editing.id, payload);
         toast.success('Member updated');
       } else {
-        await teamService.createTeamMember(editing);
+        await teamService.createTeamMember(payload);
         toast.success('Member added');
       }
       setShowModal(false);
@@ -125,9 +160,9 @@ export default function ManageTeam() {
                         <tr key={m.id} className="border-b border-[var(--glass-border)] hover:bg-[var(--bg-card)] transition-colors">
                           <td className="px-6 py-3">
                             <div className="flex items-center gap-3">
-                              {m.image?.trim() ? (
+                              {m.image?.trim() || m.profileImageUrl?.trim() ? (
                                 <img
-                                  src={m.image.trim()}
+                                  src={(m.image?.trim() || m.profileImageUrl?.trim())!}
                                   alt={m.name}
                                   className="w-9 h-9 rounded-full object-cover shrink-0"
                                   onError={(e) => {
@@ -174,14 +209,14 @@ export default function ManageTeam() {
               <div className="col-span-1 md:col-span-2">
                 <ImageUpload
                   label="Profile Photo"
-                  value={editing.image || ''}
-                  onChange={url => setEditing({ ...editing, image: url })}
+                  value={editing.image || editing.profileImageUrl || ''}
+                  onChange={url => setEditing({ ...editing, image: url, profileImageUrl: url })}
                   bucket="team-images"
                 />
               </div>
               <Input label="Email" value={editing.email || ''} onChange={e => setEditing({ ...editing, email: e.target.value })} placeholder="email@college.edu" />
-              <Input label="LinkedIn" value={editing.linkedin || ''} onChange={e => setEditing({ ...editing, linkedin: e.target.value })} placeholder="https://linkedin.com/in/..." />
-              <Input label="Instagram" value={editing.instagram || ''} onChange={e => setEditing({ ...editing, instagram: e.target.value })} placeholder="https://instagram.com/..." />
+              <Input label="LinkedIn" value={editing.linkedin || editing.linkedinUrl || ''} onChange={e => setEditing({ ...editing, linkedin: e.target.value, linkedinUrl: e.target.value })} placeholder="https://linkedin.com/in/..." />
+              <Input label="Instagram" value={editing.instagram || editing.instagramUrl || ''} onChange={e => setEditing({ ...editing, instagram: e.target.value, instagramUrl: e.target.value })} placeholder="https://instagram.com/..." />
             </div>
             <div className="flex gap-3 pt-2">
               <Button variant="ghost" onClick={() => setShowModal(false)} fullWidth>Cancel</Button>

@@ -95,15 +95,43 @@ export async function updateBanner(id: string, bannerData: Partial<Banner>): Pro
   if (bannerData.title !== undefined) payload.title = bannerData.title;
   if (bannerData.subtitle !== undefined) payload.subtitle = bannerData.subtitle;
   if (bannerData.imageUrl !== undefined || bannerData.image !== undefined) {
-    payload.image_url = bannerData.imageUrl ?? bannerData.image;
+    const img = (bannerData.image !== undefined && bannerData.image !== bannerData.imageUrl)
+      ? bannerData.image
+      : (bannerData.imageUrl ?? bannerData.image ?? '');
+    payload.image_url = img;
   }
   if (bannerData.buttonText !== undefined) payload.button_text = bannerData.buttonText;
   if (bannerData.buttonLink !== undefined) payload.button_link = bannerData.buttonLink;
   if (bannerData.displayOrder !== undefined || bannerData.order !== undefined) {
-    payload.display_order = bannerData.displayOrder ?? bannerData.order;
+    const ord = (bannerData.order !== undefined && bannerData.order !== bannerData.displayOrder)
+      ? bannerData.order
+      : (bannerData.displayOrder ?? bannerData.order);
+    payload.display_order = ord;
   }
   if (bannerData.isActive !== undefined || bannerData.active !== undefined) {
-    payload.is_active = bannerData.isActive ?? bannerData.active;
+    const act = (bannerData.active !== undefined && bannerData.active !== bannerData.isActive)
+      ? bannerData.active
+      : (bannerData.isActive ?? bannerData.active);
+    payload.is_active = act;
+  }
+
+  if (!isSupabaseConfigured) {
+    const idx = mockBanners.findIndex(b => b.id === id);
+    if (idx !== -1) {
+      const updated: Banner = {
+        ...mockBanners[idx],
+        ...bannerData,
+        image: (payload.image_url as string) ?? mockBanners[idx].image,
+        imageUrl: (payload.image_url as string) ?? mockBanners[idx].imageUrl,
+        active: (payload.is_active as boolean) ?? mockBanners[idx].active,
+        isActive: (payload.is_active as boolean) ?? mockBanners[idx].isActive,
+        order: (payload.display_order as number) ?? mockBanners[idx].order,
+        displayOrder: (payload.display_order as number) ?? mockBanners[idx].displayOrder,
+      };
+      mockBanners[idx] = updated;
+      return updated;
+    }
+    return { id, ...bannerData } as Banner;
   }
 
   const { data, error } = await supabase
@@ -118,11 +146,26 @@ export async function updateBanner(id: string, bannerData: Partial<Banner>): Pro
 }
 
 export async function deleteBanner(id: string): Promise<void> {
+  if (!isSupabaseConfigured) {
+    const idx = mockBanners.findIndex(b => b.id === id);
+    if (idx !== -1) mockBanners.splice(idx, 1);
+    return;
+  }
+
   const { error } = await supabase.from('banners').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
 
 export async function toggleBannerActive(id: string, currentActive: boolean): Promise<void> {
+  if (!isSupabaseConfigured) {
+    const idx = mockBanners.findIndex(b => b.id === id);
+    if (idx !== -1) {
+      mockBanners[idx].active = !currentActive;
+      mockBanners[idx].isActive = !currentActive;
+    }
+    return;
+  }
+
   const { error } = await supabase
     .from('banners')
     .update({ is_active: !currentActive })

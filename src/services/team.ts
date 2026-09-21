@@ -76,19 +76,48 @@ export async function getAllTeamMembers(): Promise<TeamMember[]> {
 }
 
 export async function createTeamMember(memberData: Partial<TeamMember>): Promise<TeamMember> {
+  const photo = memberData.image || memberData.profileImageUrl || '';
+  const linkedin = memberData.linkedin || memberData.linkedinUrl || '';
+  const instagram = memberData.instagram || memberData.instagramUrl || '';
+
+  if (!isSupabaseConfigured) {
+    const newMember: TeamMember = {
+      id: `team-${Date.now()}`,
+      name: memberData.name ?? '',
+      role: memberData.role ?? '',
+      category: memberData.category ?? 'Technical Team',
+      profileImageUrl: photo,
+      image: photo,
+      department: memberData.department ?? '',
+      year: memberData.year ?? '',
+      email: memberData.email ?? '',
+      phone: memberData.phone ?? '',
+      linkedinUrl: linkedin,
+      linkedin: linkedin,
+      instagramUrl: instagram,
+      instagram: instagram,
+      displayOrder: memberData.displayOrder ?? mockTeamMembers.length + 1,
+      isActive: memberData.isActive ?? true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockTeamMembers.push(newMember);
+    return newMember;
+  }
+
   const { data, error } = await supabase
     .from('team_members')
     .insert({
       name: memberData.name ?? '',
       role: memberData.role ?? '',
       category: memberData.category ?? 'Technical Team',
-      profile_image_url: memberData.profileImageUrl ?? memberData.image ?? '',
+      profile_image_url: photo,
       department: memberData.department ?? '',
       year: memberData.year ?? '',
       email: memberData.email ?? '',
       phone: memberData.phone ?? '',
-      linkedin_url: memberData.linkedinUrl ?? memberData.linkedin ?? '',
-      instagram_url: memberData.instagramUrl ?? memberData.instagram ?? '',
+      linkedin_url: linkedin,
+      instagram_url: instagram,
       display_order: memberData.displayOrder ?? 0,
       is_active: memberData.isActive ?? true,
     })
@@ -106,20 +135,44 @@ export async function updateTeamMember(id: string, memberData: Partial<TeamMembe
   if (memberData.role !== undefined) payload.role = memberData.role;
   if (memberData.category !== undefined) payload.category = memberData.category;
   if (memberData.profileImageUrl !== undefined || memberData.image !== undefined) {
-    payload.profile_image_url = memberData.profileImageUrl ?? memberData.image;
+    const photo = (memberData.image !== undefined && memberData.image !== memberData.profileImageUrl)
+      ? memberData.image
+      : (memberData.profileImageUrl ?? memberData.image ?? '');
+    payload.profile_image_url = photo;
   }
   if (memberData.department !== undefined) payload.department = memberData.department;
   if (memberData.year !== undefined) payload.year = memberData.year;
   if (memberData.email !== undefined) payload.email = memberData.email;
   if (memberData.phone !== undefined) payload.phone = memberData.phone;
   if (memberData.linkedinUrl !== undefined || memberData.linkedin !== undefined) {
-    payload.linkedin_url = memberData.linkedinUrl ?? memberData.linkedin;
+    const linkedin = (memberData.linkedin !== undefined && memberData.linkedin !== memberData.linkedinUrl)
+      ? memberData.linkedin
+      : (memberData.linkedinUrl ?? memberData.linkedin ?? '');
+    payload.linkedin_url = linkedin;
   }
   if (memberData.instagramUrl !== undefined || memberData.instagram !== undefined) {
-    payload.instagram_url = memberData.instagramUrl ?? memberData.instagram;
+    const instagram = (memberData.instagram !== undefined && memberData.instagram !== memberData.instagramUrl)
+      ? memberData.instagram
+      : (memberData.instagramUrl ?? memberData.instagram ?? '');
+    payload.instagram_url = instagram;
   }
   if (memberData.displayOrder !== undefined) payload.display_order = memberData.displayOrder;
   if (memberData.isActive !== undefined) payload.is_active = memberData.isActive;
+
+  if (!isSupabaseConfigured) {
+    const idx = mockTeamMembers.findIndex(m => m.id === id);
+    if (idx !== -1) {
+      const updated: TeamMember = {
+        ...mockTeamMembers[idx],
+        ...memberData,
+        image: (payload.profile_image_url as string) ?? mockTeamMembers[idx].image,
+        profileImageUrl: (payload.profile_image_url as string) ?? mockTeamMembers[idx].profileImageUrl,
+      };
+      mockTeamMembers[idx] = updated;
+      return updated;
+    }
+    return { id, ...memberData } as TeamMember;
+  }
 
   const { data, error } = await supabase
     .from('team_members')
@@ -133,6 +186,12 @@ export async function updateTeamMember(id: string, memberData: Partial<TeamMembe
 }
 
 export async function deleteTeamMember(id: string): Promise<void> {
+  if (!isSupabaseConfigured) {
+    const idx = mockTeamMembers.findIndex(m => m.id === id);
+    if (idx !== -1) mockTeamMembers.splice(idx, 1);
+    return;
+  }
+
   const { error } = await supabase.from('team_members').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }

@@ -20,7 +20,7 @@ export default function TeamCard({ member, index }: TeamCardProps) {
         {/* Image */}
         <div className="relative aspect-square overflow-hidden shrink-0 bg-[var(--bg-secondary)]">
           <img
-            src={member.image?.trim() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
+            src={member.image?.trim() || member.profileImageUrl?.trim() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
             alt={member.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"

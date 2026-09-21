@@ -40,7 +40,18 @@ export default function ManageBanners() {
   };
 
   const openEdit = (banner: Banner) => {
-    setEditingBanner({ ...banner });
+    const img = banner.image || banner.imageUrl || '';
+    const active = banner.active ?? banner.isActive ?? true;
+    const order = banner.order ?? banner.displayOrder ?? 1;
+    setEditingBanner({
+      ...banner,
+      image: img,
+      imageUrl: img,
+      active,
+      isActive: active,
+      order,
+      displayOrder: order,
+    });
     setShowModal(true);
   };
 
@@ -48,11 +59,21 @@ export default function ManageBanners() {
     if (!editingBanner?.title) return;
     setSaving(true);
     try {
+      const payload: Partial<Banner> = {
+        ...editingBanner,
+        imageUrl: editingBanner.image || editingBanner.imageUrl || '',
+        image: editingBanner.image || editingBanner.imageUrl || '',
+        isActive: editingBanner.active ?? editingBanner.isActive ?? true,
+        active: editingBanner.active ?? editingBanner.isActive ?? true,
+        displayOrder: editingBanner.order ?? editingBanner.displayOrder ?? 1,
+        order: editingBanner.order ?? editingBanner.displayOrder ?? 1,
+      };
+
       if (editingBanner.id && banners.find(b => b.id === editingBanner.id)) {
-        await bannerService.updateBanner(editingBanner.id, editingBanner);
+        await bannerService.updateBanner(editingBanner.id, payload);
         toast.success('Banner updated');
       } else {
-        await bannerService.createBanner(editingBanner);
+        await bannerService.createBanner(payload);
         toast.success('Banner created');
       }
       setShowModal(false);
@@ -156,17 +177,34 @@ export default function ManageBanners() {
             <Input label="Subtitle" value={editingBanner.subtitle || ''} onChange={e => setEditingBanner({ ...editingBanner, subtitle: e.target.value })} placeholder="Banner subtitle" />
             <ImageUpload
               label="Banner Image"
-              value={editingBanner.image || ''}
-              onChange={url => setEditingBanner({ ...editingBanner, image: url })}
+              value={editingBanner.image || editingBanner.imageUrl || ''}
+              onChange={url => setEditingBanner({ ...editingBanner, image: url, imageUrl: url })}
               bucket="association-assets"
             />
             <div className="grid grid-cols-2 gap-5">
               <Input label="Button Text" value={editingBanner.buttonText || ''} onChange={e => setEditingBanner({ ...editingBanner, buttonText: e.target.value })} placeholder="Learn More" />
               <Input label="Button Link" value={editingBanner.buttonLink || ''} onChange={e => setEditingBanner({ ...editingBanner, buttonLink: e.target.value })} placeholder="/events" />
             </div>
-            <Input label="Order" type="number" value={String(editingBanner.order || 1)} onChange={e => setEditingBanner({ ...editingBanner, order: Number(e.target.value) })} />
+            <Input
+              label="Order"
+              type="number"
+              value={String(editingBanner.order ?? editingBanner.displayOrder ?? 1)}
+              onChange={e => {
+                const val = Number(e.target.value);
+                setEditingBanner({ ...editingBanner, order: val, displayOrder: val });
+              }}
+            />
             <div className="flex items-center gap-3">
-              <input type="checkbox" id="bannerActive" checked={editingBanner.active ?? true} onChange={e => setEditingBanner({ ...editingBanner, active: e.target.checked })} className="w-4 h-4 rounded" />
+              <input
+                type="checkbox"
+                id="bannerActive"
+                checked={editingBanner.active ?? editingBanner.isActive ?? true}
+                onChange={e => {
+                  const val = e.target.checked;
+                  setEditingBanner({ ...editingBanner, active: val, isActive: val });
+                }}
+                className="w-4 h-4 rounded"
+              />
               <label htmlFor="bannerActive" className="text-sm text-[var(--text-secondary)]">Active</label>
             </div>
             <div className="flex gap-3 pt-2">

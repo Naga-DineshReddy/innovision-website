@@ -42,9 +42,10 @@ export default function Events() {
       const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
         e.shortDescription.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = category === 'all' || e.category === category;
+      const isPast = e.status === 'completed' || e.status === 'cancelled' || eventService.isEventDateInPast(e.date || e.eventDate);
       const matchesTab = tab === 'upcoming'
-        ? (e.status === 'upcoming' || e.status === 'ongoing')
-        : e.status === 'completed';
+        ? (!isPast && (e.status === 'upcoming' || e.status === 'ongoing'))
+        : isPast;
       return matchesSearch && matchesCategory && matchesTab;
     });
   }, [events, search, category, tab]);

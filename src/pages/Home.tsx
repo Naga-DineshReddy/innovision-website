@@ -40,7 +40,9 @@ export default function Home() {
     load();
   }, []);
 
-  const upcomingEvents = events.filter(e => e.status === 'upcoming').slice(0, 3);
+  const upcomingEvents = events
+    .filter(e => (e.status === 'upcoming' || e.status === 'ongoing') && !eventService.isEventDateInPast(e.date || e.eventDate))
+    .slice(0, 3);
 
   const stats = [
     { icon: Calendar, label: 'Events Hosted', value: 25 },

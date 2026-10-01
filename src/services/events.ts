@@ -4,11 +4,54 @@ import { mockEvents } from '../data/mockData';
 
 // --------------- Helpers ---------------
 
+/** Check if a date string (YYYY-MM-DD or ISO) is before today's local date. */
+export function isEventDateInPast(dateStr?: string | null): boolean {
+  if (!dateStr) return false;
+  const cleanDate = dateStr.split('T')[0];
+  if (!cleanDate) return false;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const localToday = `${year}-${month}-${day}`;
+
+  return cleanDate < localToday;
+}
+
+/** Determine the true status of an event, auto-completing events whose date has passed. */
+export function getEffectiveEventStatus(
+  status: Event['status'] | string | undefined,
+  eventDate?: string | null
+): Event['status'] {
+  if (status === 'completed' || status === 'cancelled') {
+    return status;
+  }
+  if (isEventDateInPast(eventDate)) {
+    return 'completed';
+  }
+  return (status as Event['status']) || 'upcoming';
+}
+
 /** Map a Supabase DB row to the Event interface (adds compat aliases). */
 function mapRow(row: Record<string, unknown>): Event {
   const rules = (row.rules as string[] | null) ?? [];
   const eventDate = row.event_date ? String(row.event_date).split('T')[0] : '';
   const regDeadline = row.registration_deadline ? String(row.registration_deadline).split('T')[0] : null;
+  const rawStatus = (row.status as Event['status']) || 'upcoming';
+  const effectiveStatus = getEffectiveEventStatus(rawStatus, eventDate);
+  const isPast = effectiveStatus === 'completed' || effectiveStatus === 'cancelled';
+
+  // If status in Supabase is still 'upcoming' or 'ongoing' but the date has passed,
+  // attempt a silent background sync so the DB stays up to date
+  if (isSupabaseConfigured && row.id && rawStatus !== 'completed' && effectiveStatus === 'completed') {
+    Promise.resolve(
+      supabase
+        .from('events')
+        .update({ status: 'completed', registration_enabled: false })
+        .eq('id', row.id as string)
+    ).catch(() => {});
+  }
 
   return {
     id: row.id as string,
@@ -27,8 +70,8 @@ function mapRow(row: Record<string, unknown>): Event {
     teamSizeMin: (row.team_size_min as number) ?? 1,
     teamSizeMax: (row.team_size_max as number) ?? 4,
     registrationDeadline: regDeadline,
-    registrationEnabled: (row.registration_enabled as boolean) ?? true,
-    status: (row.status as Event['status']) || 'upcoming',
+    registrationEnabled: isPast ? false : ((row.registration_enabled as boolean) ?? true),
+    status: effectiveStatus,
     createdAt: (row.created_at as string) || '',
     updatedAt: (row.updated_at as string) || '',
 
@@ -57,7 +100,11 @@ export async function getEvents(filters?: {
   category?: Event['category'];
 }): Promise<Event[]> {
   if (!isSupabaseConfigured) {
-    let list = [...mockEvents];
+    let list = mockEvents.map(e => ({
+      ...e,
+      status: getEffectiveEventStatus(e.status, e.eventDate || e.date),
+      registrationEnabled: isEventDateInPast(e.eventDate || e.date) ? false : e.registrationEnabled,
+    }));
     if (filters?.status) list = list.filter(e => e.status === filters.status);
     if (filters?.category) list = list.filter(e => e.category === filters.category);
     return list;
@@ -65,21 +112,36 @@ export async function getEvents(filters?: {
 
   try {
     let query = supabase.from('events').select('*').order('event_date', { ascending: false });
-    if (filters?.status) query = query.eq('status', filters.status);
+    // Note: Do not filter status at SQL level so that past-dated events are correctly auto-completed by mapRow
     if (filters?.category) query = query.eq('category', filters.category);
 
     const { data, error } = await query;
     if (error) {
       console.warn('Supabase getEvents query failed, falling back to mock data:', error.message);
-      let list = [...mockEvents];
+      let list = mockEvents.map(e => ({
+        ...e,
+        status: getEffectiveEventStatus(e.status, e.eventDate || e.date),
+        registrationEnabled: isEventDateInPast(e.eventDate || e.date) ? false : e.registrationEnabled,
+      }));
       if (filters?.status) list = list.filter(e => e.status === filters.status);
       if (filters?.category) list = list.filter(e => e.category === filters.category);
       return list;
     }
-    return (data ?? []).map(mapRow);
+    let mapped = (data ?? []).map(mapRow);
+    if (filters?.status) {
+      mapped = mapped.filter(e => e.status === filters.status);
+    }
+    return mapped;
   } catch (err) {
     console.warn('getEvents network error, falling back to mock data:', err);
-    return mockEvents;
+    let list = mockEvents.map(e => ({
+      ...e,
+      status: getEffectiveEventStatus(e.status, e.eventDate || e.date),
+      registrationEnabled: isEventDateInPast(e.eventDate || e.date) ? false : e.registrationEnabled,
+    }));
+    if (filters?.status) list = list.filter(e => e.status === filters.status);
+    if (filters?.category) list = list.filter(e => e.category === filters.category);
+    return list;
   }
 }
 

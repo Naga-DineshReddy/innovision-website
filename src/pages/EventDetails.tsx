@@ -54,10 +54,12 @@ export default function EventDetails() {
     );
   }
 
+  const effectiveStatus = eventService.getEffectiveEventStatus(event.status, event.date || event.eventDate);
+  const isCompleted = effectiveStatus === 'completed' || effectiveStatus === 'cancelled';
   const isPastDeadline = event.registrationDeadline
     ? new Date(event.registrationDeadline) < new Date()
     : false;
-  const canRegister = event.registrationEnabled && !isPastDeadline;
+  const canRegister = event.registrationEnabled && !isPastDeadline && !isCompleted;
 
   return (
     <>
@@ -89,8 +91,8 @@ export default function EventDetails() {
             <div className="lg:col-span-2">
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <Badge variant={event.status === 'upcoming' ? 'success' : event.status === 'ongoing' ? 'warning' : 'default'} size="md">
-                    {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                  <Badge variant={effectiveStatus === 'upcoming' ? 'success' : effectiveStatus === 'ongoing' ? 'warning' : 'default'} size="md">
+                    {effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)}
                   </Badge>
                   <Badge variant="purple" size="md">
                     {event.category.charAt(0).toUpperCase() + event.category.slice(1).replace('-', ' ')}
@@ -188,7 +190,11 @@ export default function EventDetails() {
                 ) : (
                   <div className="glass-card p-4 text-center">
                     <p className="text-sm text-[var(--text-muted)]">
-                      {isPastDeadline ? 'Registration deadline has passed.' : 'Registration is closed for this event.'}
+                      {isCompleted
+                        ? 'This event has concluded.'
+                        : isPastDeadline
+                        ? 'Registration deadline has passed.'
+                        : 'Registration is closed for this event.'}
                     </p>
                   </div>
                 )}

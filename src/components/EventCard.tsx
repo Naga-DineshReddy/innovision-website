@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, MapPin, Users, ArrowRight } from 'lucide-react';
 import type { Event } from '../types';
 import Badge from './ui/Badge';
+import { getEffectiveEventStatus } from '../services/events';
 
 interface EventCardProps {
   event: Event;
@@ -20,6 +21,9 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function EventCard({ event, index }: EventCardProps) {
+  const effectiveStatus = getEffectiveEventStatus(event.status, event.date || event.eventDate);
+  const isPast = effectiveStatus === 'completed' || effectiveStatus === 'cancelled';
+
   const statusColors: Record<Event['status'], string> = {
     upcoming: 'bg-green-500/20 text-green-400',
     ongoing: 'bg-yellow-500/20 text-yellow-400',
@@ -51,8 +55,8 @@ export default function EventCard({ event, index }: EventCardProps) {
 
           {/* Status Badge */}
           <div className="absolute top-3.5 right-3.5">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md ${statusColors[event.status]}`}>
-              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold backdrop-blur-md ${statusColors[effectiveStatus]}`}>
+              {effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)}
             </span>
           </div>
 
@@ -95,7 +99,11 @@ export default function EventCard({ event, index }: EventCardProps) {
           </div>
 
           <div className="mt-5 pt-4 border-t border-[var(--glass-border)] flex items-center justify-between gap-2">
-            {event.registrationEnabled ? (
+            {effectiveStatus === 'completed' ? (
+              <Badge variant="default">Completed</Badge>
+            ) : effectiveStatus === 'cancelled' ? (
+              <Badge variant="error">Cancelled</Badge>
+            ) : event.registrationEnabled && !isPast ? (
               <Badge variant="success">Open</Badge>
             ) : (
               <Badge variant="default">Closed</Badge>
